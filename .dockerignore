@@ -1,0 +1,15 @@
+.git
+.github
+.idea
+.vscode
+target
+*.md
+LICENSE
+.env
+.env.*
+**/.env
+**/.npmrc
+**/*.pem
+**/*.key
+**/*credentials*
+src/test

@@ -1,0 +1,14 @@
+package io.github.micha1805.llmgateway;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
+
+@SpringBootApplication
+@ConfigurationPropertiesScan
+public class LlmGatewayApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(LlmGatewayApplication.class, args);
+    }
+}

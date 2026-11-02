@@ -1,0 +1,77 @@
+# Provider auto-configuration in Spring AI 1.1 is single-model: each starter
+# activates when spring.ai.model.<kind> is missing OR equals that provider.
+# With every starter on the classpath, leaving the properties unset would try
+# to build OpenAI, Anthropic, Mistral, and Ollama at once, and a missing API
+# key would stop startup. "none" matches none of them. ChatClients are created
+# explicitly in ChatProviderConfiguration, only for providers that are configured.
+spring:
+  application:
+    name: llm-gateway
+  threads:
+    virtual:
+      enabled: true
+  main:
+    web-application-type: servlet
+  ai:
+    chat:
+      client:
+        enabled: false
+    model:
+      chat: none
+      embedding: none
+      image: none
+      ocr: none
+      moderation: none
+      audio:
+        speech: none
+        transcription: none
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+
+llm:
+  http:
+    connect-timeout: ${LLM_CONNECT_TIMEOUT:5s}
+    read-timeout: ${LLM_READ_TIMEOUT:120s}
+  providers:
+    openai:
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      model: ${OPENAI_MODEL:gpt-4o-mini}
+    anthropic:
+      api-key: ${ANTHROPIC_API_KEY:}
+      base-url: ${ANTHROPIC_BASE_URL:https://api.anthropic.com}
+      model: ${ANTHROPIC_MODEL:claude-haiku-4-5}
+      max-tokens: ${ANTHROPIC_MAX_TOKENS:1024}
+    grok:
+      # xAI is OpenAI-compatible. The Spring AI OpenAI client appends /v1/chat/completions,
+      # so the base URL is the host root (https://api.x.ai), not https://api.x.ai/v1.
+      api-key: ${XAI_API_KEY:}
+      base-url: ${XAI_BASE_URL:https://api.x.ai}
+      model: ${XAI_MODEL:grok-4.7}
+    mistral:
+      api-key: ${MISTRAL_API_KEY:}
+      base-url: ${MISTRAL_BASE_URL:https://api.mistral.ai}
+      model: ${MISTRAL_MODEL:mistral-small-latest}
+    ollama:
+      enabled: ${OLLAMA_ENABLED:true}
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      model: ${OLLAMA_MODEL:llama3.2}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
+    display-request-duration: true
+
+logging:
+  level:
+    io.github.micha1805.llmgateway: INFO
