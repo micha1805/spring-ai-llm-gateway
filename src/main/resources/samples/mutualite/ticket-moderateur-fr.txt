@@ -1,0 +1,12 @@
+FICTIONAL SAMPLE DATA. Not an official mutuality, MLOZ, or INAMI/RIZIV document.
+Invented for this portfolio project. Licence: MIT, same as this repository.
+
+Ticket moderateur — Mutuelle Exemple.
+
+Exemple fictif d'une consultation a 30 euros chez un generaliste conventionne.
+Le tarif legal fictif retenu dans cet exemple est de 26 euros.
+Le ticket moderateur fictif laisse a charge du membre est de 4 euros.
+La Mutuelle Exemple ajoute un avantage complementaire fictif de 2 euros sur cet exemple precis, verse au membre apres reception de l'attestation.
+
+Le ticket moderateur n'est pas une amende. C'est la part du tarif legal qui reste au membre.
+Un prestataire non conventionne peut facturer plus que le tarif legal. Cette difference n'est pas le ticket moderateur et n'est pas remboursee par la Mutuelle Exemple.
