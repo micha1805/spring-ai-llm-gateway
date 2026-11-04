@@ -97,7 +97,9 @@ llm:
       cache-directory: ${TRANSFORMERS_CACHE_DIR:${java.io.tmpdir}/llm-gateway-onnx}
   rag:
     default-top-k: ${RAG_TOP_K:4}
-    similarity-threshold: ${RAG_SIMILARITY_THRESHOLD:0.30}
+    # 0.10, not 0.30. This MiniLM mean-pools up to 128 tokens, so a name mentioned once
+    # in a full chunk scores about 0.12-0.22. 0.30 dropped every neighbour.
+    similarity-threshold: ${RAG_SIMILARITY_THRESHOLD:0.10}
     # paraphrase-multilingual-MiniLM-L12-v2 truncates at 128 tokens. Stay under that.
     chunk-size: ${RAG_CHUNK_SIZE:120}
     min-chunk-size-chars: ${RAG_MIN_CHUNK_CHARS:40}

@@ -71,6 +71,37 @@ class RagServiceTest {
     }
 
     @Test
+    void dropsANeighbourBelowTheSimilarityFloor() {
+        Document weak = Document.builder()
+                .id("chunk-1")
+                .text("Some other paragraph.")
+                .metadata(Map.of(
+                        ChunkMetadata.DOCUMENT_ID, UUID.randomUUID().toString(),
+                        ChunkMetadata.DOCUMENT_NAME, "other.txt",
+                        ChunkMetadata.CHUNK, 0))
+                .score(0.05)
+                .build();
+        VectorStore store = org.mockito.Mockito.mock(VectorStore.class);
+        when(store.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(weak));
+        ChatService chat = org.mockito.Mockito.mock(ChatService.class);
+        when(chat.chat(any(ChatRequest.class))).thenAnswer(invocation -> {
+            ChatRequest request = invocation.getArgument(0);
+            assertThat(request.message()).contains("(no excerpts were retrieved)");
+            return new ChatReply(ProviderId.GROK, "grok-4.7", "Not in the documents.");
+        });
+
+        AskReply reply = new RagService(
+                availableStatus(),
+                new RagProperties(4, 0.10, 120, 40, new RagProperties.Samples(false)),
+                registryWith(ProviderId.GROK),
+                chat,
+                providerOf(store))
+                .ask(new AskRequest("Who is Camille Dupont?", ProviderId.GROK, null, 4));
+
+        assertThat(reply.sources()).isEmpty();
+    }
+
+    @Test
     void tellsTheModelWhenNothingWasRetrieved() {
         VectorStore store = org.mockito.Mockito.mock(VectorStore.class);
         when(store.similaritySearch(any(SearchRequest.class))).thenReturn(List.of());
@@ -113,9 +144,14 @@ class RagServiceTest {
                 .hasMessageNotContaining("secret question");
     }
 
-    private static RagService service(VectorStore store, ChatService chat, ProviderRegistry registry) {
+    private static RagStatus availableStatus() {
         RagStatus status = org.mockito.Mockito.mock(RagStatus.class);
         when(status.available()).thenReturn(true);
+        return status;
+    }
+
+    private static RagService service(VectorStore store, ChatService chat, ProviderRegistry registry) {
+        RagStatus status = availableStatus();
         ObjectProvider<VectorStore> stores = providerOf(store);
         return new RagService(status, new RagProperties(4, 0.0, 120, 40, new RagProperties.Samples(false)),
                 registry, chat, stores);

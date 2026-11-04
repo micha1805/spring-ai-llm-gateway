@@ -226,7 +226,7 @@ Each source:
 | `page` | 1-based PDF page. Omitted for text and Markdown |
 | `chunk` | Zero-based index inside the document |
 | `snippet` | Whitespace-collapsed extract, at most 400 characters |
-| `score` | Cosine similarity, `1 - cosine distance`. Higher is closer. About 0.3 is a weak match for the default local model; a close paraphrase is often near 0.6 |
+| `score` | Cosine similarity, `1 - cosine distance`. Higher is closer. For the default local model a short paraphrase is often near 0.6, and a name inside a long chunk is often 0.12–0.22. Neighbours below `RAG_SIMILARITY_THRESHOLD` are omitted and their scores are logged. |
 
 | Status | When |
 | --- | --- |
@@ -251,7 +251,7 @@ Retrieval is checked first. A missing database is `503` even when the chat key i
 
 The chat provider changes per request. The embedding model must not, or old vectors and new queries land in different spaces. This service therefore has a single `EMBEDDING_PROVIDER`.
 
-**Default: `transformers`.** A local ONNX export of [`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) (384 dimensions, max 128 tokens, Apache-2.0). The files actually loaded are the int8 ONNX and `tokenizer.json` from [`Xenova/paraphrase-multilingual-MiniLM-L12-v2`](https://huggingface.co/Xenova/paraphrase-multilingual-MiniLM-L12-v2), which is that same model converted to ONNX. Spring AI's `TransformersEmbeddingModel` runs it with ONNX Runtime and mean-pools `last_hidden_state`. No API key. The first ingest or question downloads about 130 MB of model files into `TRANSFORMERS_CACHE_DIR`, plus DJL's small PyTorch CPU libraries into the user home. After that, embedding stays on the machine.
+**Default: `transformers`.** A local ONNX export of [`sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`](https://huggingface.co/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2) (384 dimensions, max 128 tokens, Apache-2.0). The files actually loaded are the int8 ONNX and `tokenizer.json` from [`Xenova/paraphrase-multilingual-MiniLM-L12-v2`](https://huggingface.co/Xenova/paraphrase-multilingual-MiniLM-L12-v2), which is that same model converted to ONNX. Spring AI's `TransformersEmbeddingModel` runs it with ONNX Runtime and mean-pools `last_hidden_state` with the attention mask, which is the pooling this model was trained with. The vectors are not L2-normalized before they are stored. That does not change the score: pgvector's `<=>` operator is cosine distance, which normalizes internally, and the API reports `1 - distance` (cosine similarity). A span that is mostly a person's name scores about 0.65 against "Who is that person?". The same name once at the start of a 120-token chunk scores about 0.12–0.22, because the mean is the rest of the chunk and the model keeps only the first 128 tokens. No API key. The first ingest or question downloads about 130 MB of model files into `TRANSFORMERS_CACHE_DIR`, plus DJL's small PyTorch CPU libraries into the user home. After that, embedding stays on the machine.
 
 That model is the default because the sample corpus and the questions are French, Dutch, and English, and a Belgian mutuality assistant that only embeds English would miss the documents it is supposed to cite. It is also the choice that lets `docker compose up` demonstrate `/api/ask` without a paid key. It is not the highest-quality embedder: the window is 128 tokens, so the default chunk size is 120, and a large corpus would want a stronger model.
 
@@ -344,13 +344,37 @@ Keys are read from the environment. Nothing in this repository is a secret. Copy
 | `TRANSFORMERS_CACHE_DIR` | `${java.io.tmpdir}/llm-gateway-onnx` | Where downloaded ONNX files are stored. Compose uses `/app/onnx-cache`. |
 | `RAG_LOAD_SAMPLES` | `false` | Ingest the fictional sample files on startup. Compose defaults this to `true`. |
 | `RAG_TOP_K` | `4` | Default `topK` for `/api/ask`. Hard cap is 10. |
-| `RAG_SIMILARITY_THRESHOLD` | `0.30` | Minimum cosine similarity. `0` keeps weak neighbours. |
+| `RAG_SIMILARITY_THRESHOLD` | `0.10` | Minimum cosine similarity. `0.30` drops the diluted name matches this local model actually returns (about 0.12–0.22). `0` keeps every neighbour with a positive score. |
 | `RAG_CHUNK_SIZE` | `120` | TokenTextSplitter chunk size. Stay under 128 for the default ONNX model. |
 | `RAG_MIN_CHUNK_CHARS` | `40` | Minimum characters before the splitter cuts on punctuation. |
 
 Provider calls and embedding calls are not retried. A failed call surfaces as `502` so the client can decide whether to try again.
 
 ## Run locally
+
+Spring Boot does not read a `.env` file. Docker Compose does, from a file named `.env` in the same directory as `compose.yaml`. Copy `.env.example` to `.env` and uncomment the lines you need. Compose interpolates those values into the `environment:` block. Inside the gateway container the database host is the Compose service name `postgres`, which `compose.yaml` already sets:
+
+```text
+SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/llm
+```
+
+Do not point that container at `localhost`. Inside the container, localhost is the gateway itself, not Postgres. Use `postgres` on the Compose network. Use `host.docker.internal` only when the app container must reach a Postgres that is running on the host machine rather than in Compose.
+
+An IDE run is the opposite. The IDE does not load `.env` unless you add the variables to the run configuration (IntelliJ: Run Configuration, Environment variables; VS Code / Cursor: `env` in `launch.json`). From the host, with only the database container up, the host is `localhost`:
+
+```bash
+docker compose up -d postgres
+```
+
+```text
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/llm
+SPRING_DATASOURCE_USERNAME=llm
+SPRING_DATASOURCE_PASSWORD=llm
+RAG_LOAD_SAMPLES=true
+RAG_SIMILARITY_THRESHOLD=0.10
+```
+
+`RAG_SIMILARITY_THRESHOLD` in `.env` overrides the default for Compose. The same variable in the IDE run configuration overrides it for a process you start on the host. Leaving it unset uses `0.10`.
 
 Chat only, no database:
 
@@ -376,7 +400,7 @@ export RAG_LOAD_SAMPLES=true
 ./mvnw spring-boot:run
 ```
 
-The first sample ingest downloads the ONNX model. Later starts reuse `TRANSFORMERS_CACHE_DIR`.
+The first sample ingest downloads the ONNX model. Later starts reuse `TRANSFORMERS_CACHE_DIR`. Rows already in `vector_store` keep the vectors from the chunk size used at ingest. Upload the file again after you change `RAG_CHUNK_SIZE` or the embedding model. A shorter chunk (for example `RAG_CHUNK_SIZE=48`) puts a person's name in its own vector and the score rises toward 0.6. Delete the old document first, or the previous SHA-256 row is reused and the old vectors stay.
 
 Swagger UI: http://localhost:8080/swagger-ui.html
 

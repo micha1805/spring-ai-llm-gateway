@@ -46,7 +46,7 @@ services:
       TRANSFORMERS_CACHE_DIR: /app/onnx-cache
       RAG_LOAD_SAMPLES: ${RAG_LOAD_SAMPLES:-true}
       RAG_TOP_K: ${RAG_TOP_K:-4}
-      RAG_SIMILARITY_THRESHOLD: ${RAG_SIMILARITY_THRESHOLD:-0.30}
+      RAG_SIMILARITY_THRESHOLD: ${RAG_SIMILARITY_THRESHOLD:-0.10}
     volumes:
       - onnx-cache:/app/onnx-cache
 

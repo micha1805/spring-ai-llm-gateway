@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.bind.DefaultValue;
 @ConfigurationProperties(prefix = "llm.rag")
 public record RagProperties(
         @DefaultValue("4") int defaultTopK,
-        @DefaultValue("0.30") double similarityThreshold,
+        @DefaultValue("0.10") double similarityThreshold,
         @DefaultValue("120") int chunkSize,
         @DefaultValue("40") int minChunkSizeChars,
         Samples samples) {

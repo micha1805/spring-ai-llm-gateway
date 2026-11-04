@@ -4,14 +4,15 @@ import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.pdf.PagePdfDocumentReader;
-import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -29,21 +30,18 @@ public class DocumentExtractor {
     }
 
     private static List<PageText> pdf(String filename, byte[] bytes) {
-        ByteArrayResource resource = new ByteArrayResource(bytes) {
-            @Override
-            public String getFilename() {
-                return filename;
-            }
-        };
-        try (ClosingPagePdfReader reader = new ClosingPagePdfReader(resource)) {
+        try (PDDocument document = Loader.loadPDF(bytes)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            stripper.setSortByPosition(true);
             List<PageText> pages = new ArrayList<>();
-            for (Document document : reader.get()) {
-                if (!StringUtils.hasText(document.getText())) {
-                    continue;
+            int pageCount = document.getNumberOfPages();
+            for (int page = 1; page <= pageCount; page++) {
+                stripper.setStartPage(page);
+                stripper.setEndPage(page);
+                String text = tidyPdfText(stripper.getText(document));
+                if (StringUtils.hasText(text)) {
+                    pages.add(new PageText(page, text));
                 }
-                Object page = document.getMetadata().get(PagePdfDocumentReader.METADATA_START_PAGE_NUMBER);
-                Integer pageNumber = page instanceof Number number ? number.intValue() : null;
-                pages.add(new PageText(pageNumber, tidyPdfText(document.getText())));
             }
             return pages;
         }
@@ -76,8 +74,16 @@ public class DocumentExtractor {
      * The layout stripper keeps visual gaps as runs of spaces. Collapse them so a chunk
      * reads as the sentence that was written, not as a positioning grid.
      */
+    static String normalizePdfText(String text) {
+        return tidyPdfText(text);
+    }
+
     private static String tidyPdfText(String text) {
-        return text.replace('\u00A0', ' ')
+        // NFKC expands compatibility ligatures (U+FB01 ﬁ -> fi) when the font's
+        // ToUnicode map stored the single character. PDFTextStripper already emits the
+        // full multi-character mapping ("ti", "fi"); the layout reader kept only char 0.
+        String normalized = Normalizer.normalize(text, Normalizer.Form.NFKC);
+        return normalized.replace('\u00A0', ' ')
                 .replaceAll("[ \\t]{2,}", " ")
                 .replaceAll(" *\\R *", "\n")
                 .replaceAll("\\n{3,}", "\n\n")
