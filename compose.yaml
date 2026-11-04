@@ -1,8 +1,28 @@
 services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: llm
+      POSTGRES_USER: llm
+      POSTGRES_PASSWORD: llm
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llm -d llm"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
   llm-gateway:
     build: .
     ports:
       - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
@@ -17,6 +37,18 @@ services:
       OLLAMA_ENABLED: ${OLLAMA_ENABLED:-false}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/llm
+      SPRING_DATASOURCE_USERNAME: llm
+      SPRING_DATASOURCE_PASSWORD: llm
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-transformers}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      OLLAMA_EMBEDDING_MODEL: ${OLLAMA_EMBEDDING_MODEL:-bge-m3}
+      TRANSFORMERS_CACHE_DIR: /app/onnx-cache
+      RAG_LOAD_SAMPLES: ${RAG_LOAD_SAMPLES:-true}
+      RAG_TOP_K: ${RAG_TOP_K:-4}
+      RAG_SIMILARITY_THRESHOLD: ${RAG_SIMILARITY_THRESHOLD:-0.10}
+    volumes:
+      - onnx-cache:/app/onnx-cache
 
   ollama:
     image: ollama/ollama:0.40.13
@@ -34,3 +66,5 @@ services:
 
 volumes:
   ollama-data:
+  pgdata:
+  onnx-cache:

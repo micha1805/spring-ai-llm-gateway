@@ -1,0 +1,63 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [5 0 R 7 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Length 378 >>
+stream
+BT
+/F1 11 Tf
+50 740 Td
+(FICTIONAL SAMPLE DATA. Not an official mutuality, MLOZ, or INAMI/RIZIV document.) Tj
+0 -18 Td
+(Mutuelle Exemple. Garantie hospitalisation fictive. Page 1.) Tj
+0 -18 Td
+(Forfait journalier fictif: 47 euros par jour, maximum 30 jours par annee civile.) Tj
+0 -18 Td
+(Chambre commune: le forfait journalier est pris en charge par la garantie exemple.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+6 0 obj
+<< /Length 288 >>
+stream
+BT
+/F1 11 Tf
+50 740 Td
+(FICTIONAL SAMPLE DATA. Page 2. Mutuelle Exemple.) Tj
+0 -18 Td
+(Chambre individuelle: non couverte.) Tj
+0 -18 Td
+(Supplement fictif de 35 euros par jour, a charge du membre.) Tj
+0 -18 Td
+(Franchise annuelle fictive de la garantie hospitalisation: 150 euros.) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 3 0 R >> >> >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000000646 00000 n 
+0000000772 00000 n 
+0000001110 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R >>
+startxref
+1236
+%%EOF

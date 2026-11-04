@@ -80,7 +80,13 @@ class LlmGatewayApplicationTest {
                 .andExpect(jsonPath("$.info.title").value("LLM Gateway"))
                 .andExpect(jsonPath("$.paths['/api/chat'].post").exists())
                 .andExpect(jsonPath("$.paths['/api/providers'].get").exists())
-                .andExpect(content().string(containsString("Explain virtual threads")));
+                .andExpect(jsonPath("$.paths['/api/ask'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/documents'].post").exists())
+                .andExpect(jsonPath("$.paths['/api/documents'].get").exists())
+                .andExpect(jsonPath("$.paths['/api/documents/{id}'].delete").exists())
+                .andExpect(jsonPath("$.paths['/api/rag'].get").exists())
+                .andExpect(content().string(containsString("Explain virtual threads")))
+                .andExpect(content().string(containsString("forfait journalier fictif")));
 
         mockMvc.perform(get("/"))
                 .andExpect(status().isFound())
@@ -95,5 +101,31 @@ class LlmGatewayApplicationTest {
                 .getResponse()
                 .getContentAsString();
         assertThat(body).doesNotContain("apiKey").doesNotContain("sk-");
+    }
+
+    @Test
+    void ragRoutesExplainAMissingDatabase() throws Exception {
+        mockMvc.perform(get("/api/rag"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.available").value(false))
+                .andExpect(jsonPath("$.embeddingProvider").value("transformers"))
+                .andExpect(jsonPath("$.embeddingModel").value("paraphrase-multilingual-MiniLM-L12-v2"))
+                .andExpect(jsonPath("$.dimensions").value(384))
+                .andExpect(jsonPath("$.reason").value(containsString("SPRING_DATASOURCE_URL")));
+
+        mockMvc.perform(post("/api/ask")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"provider":"grok","question":"Quel est le forfait journalier fictif ?"}
+                                """))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                .andExpect(jsonPath("$.title").value("Retrieval not available"))
+                .andExpect(jsonPath("$.detail").value(containsString("SPRING_DATASOURCE_URL")))
+                .andExpect(jsonPath("$.instance").value("/api/ask"));
+
+        mockMvc.perform(get("/api/documents"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.title").value("Retrieval not available"));
     }
 }

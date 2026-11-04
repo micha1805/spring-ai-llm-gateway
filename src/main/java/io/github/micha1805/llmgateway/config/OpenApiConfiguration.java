@@ -17,10 +17,11 @@ class OpenApiConfiguration {
                 .version("1.0.0")
                 .description("""
                         Routes one chat message to OpenAI, Anthropic, xAI Grok, Mistral, or Ollama \
-                        through Spring AI. The provider is chosen on each request. A provider with no \
-                        API key stays listed by GET /api/providers and returns 503 from POST /api/chat \
-                        until its environment variable is set. This sample has no authentication; do not \
-                        expose it on a public network with live keys.""")
+                        through Spring AI, and answers questions from ingested PDF, text, and Markdown \
+                        using pgvector. The chat provider is chosen on each request. Embeddings use one \
+                        configured model so the vector store stays consistent; xAI is not an embedding \
+                        provider. A missing key or database does not stop startup: that route returns 503. \
+                        This sample has no authentication; do not expose it on a public network with live keys.""")
                 .contact(new Contact().name("Michel Plainchamp").url("https://github.com/micha1805"))
                 .license(new License().name("MIT").url("https://opensource.org/licenses/MIT")));
     }

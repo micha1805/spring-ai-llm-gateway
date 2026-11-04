@@ -3,7 +3,7 @@
 .idea
 .vscode
 target
-*.md
+/README.md
 LICENSE
 .env
 .env.*
